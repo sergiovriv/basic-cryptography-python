@@ -1,4 +1,10 @@
 import argparse
+import os
+import json
+
+def read_file(filepath):
+    with open(filepath, 'r') as file:
+        return file.read().strip()
 def create_playfair_matrix(key):
     alphabet = "ABCDEFGHIKLMNOPQRSTUVWXYZ"
     key = "".join(dict.fromkeys(key.upper().replace("J", "I") + alphabet))
@@ -70,54 +76,90 @@ def print_help():
       2. The program will encrypt your message using the specified key.
       3. If there are duplicate letters in a pair, an 'X' will be added.
       4. The output will be your encrypted text.
+      5. The encrypted text will be saved to a file named 'enc-out-N.txt', where N is an auto-incrementing number.
 
     Decryption Process:
       1. Input your ciphertext (uppercase letters only).
       2. The program will decrypt your message using the same key used for encryption.
       3. The output will be your decrypted text.
+      4. The decrypted text will be saved to a file named 'dec-out-N.txt', where N is an auto-incrementing number.
 
-    Note: The key should consist of uppercase letters and will be used to create a Playfair matrix.
+    Note: 
+      - The key should consist of uppercase letters and will be used to create a Playfair matrix.
+      - Each encryption or decryption operation will create a new output file with an incremented number.
+      - The counter for file naming is stored in a local 'counter.json' file.
     
     Example Key: "MONARCHY"
     
     Enjoy using the Playfair cipher!
     """
     print(help_message)
+    
+def get_next_id():
+    filename = 'counter.json'
+    if os.path.exists(filename):
+        with open(filename, 'r') as f:
+            data = json.load(f)
+            current_id = data['id']
+    else:
+        current_id = 0
+
+    next_id = current_id + 1
+
+    with open(filename, 'w') as f:
+        json.dump({'id': next_id}, f)
+
+    return next_id
+
+def write_output(text, prefix):
+    file_id = get_next_id()
+    filename = f"./out-mono/{prefix}-out-{file_id}.txt"
+    with open(filename, 'w') as f:
+        f.write(text)
+    print(f"Output written to {filename}")
 def create_parser():
-    """Create and return the argument parser."""
     parser = argparse.ArgumentParser(description='Playfair Cipher Encryption/Decryption')
     
     parser.add_argument('-help', action='help', help='Show this help message and exit')
-    parser.add_argument('--encrypt', '-e', metavar='PLAINTEXT', type=str,
+    parser.add_argument('-E', metavar='PLAINTEXT', type=str,
                         help='Encrypt the given plaintext (uppercase, no spaces)')
-    parser.add_argument('--decrypt', '-d', metavar='CIPHERTEXT', type=str,
+    parser.add_argument('-D', metavar='CIPHERTEXT', type=str,
                         help='Decrypt the given ciphertext (uppercase)')
+    parser.add_argument('-e', metavar='FILEPATH', type=str,
+                        help='Encrypt the content of the given file')
+    parser.add_argument('-d', metavar='FILEPATH', type=str,
+                        help='Decrypt the content of the given file')
     parser.add_argument('--key', type=str, default='MONAR',
                         help='Set the encryption/decryption key (default: MONAR)')
     
     return parser
+
 def main():
-    
-    # Create the argument parser
     parser = create_parser()
-    
-    # Parse the arguments
     args = parser.parse_args()
-    
-    # Use the provided key or fallback to default
     key = args.key
 
-    # Check if any flags were provided
-    if args.encrypt:
-        plaintext = args.encrypt
+    if args.E:
+        plaintext = args.E
         ciphertext = playfair_encrypt(plaintext, key)
         print("Encrypted text:", ciphertext)
-    elif args.decrypt:
-        ciphertext = args.decrypt
+        write_output(ciphertext, "enc")
+    elif args.D:
+        ciphertext = args.D
         plaintext = playfair_decrypt(ciphertext, key)
         print("Decrypted text:", plaintext)
+        write_output(plaintext, "dec")
+    elif args.e:
+        plaintext = read_file(args.e)
+        ciphertext = playfair_encrypt(plaintext, key)
+        print("Encrypted text:", ciphertext)
+        write_output(ciphertext, "enc")
+    elif args.d:
+        ciphertext = read_file(args.d)
+        plaintext = playfair_decrypt(ciphertext, key)
+        print("Decrypted text:", plaintext)
+        write_output(plaintext, "dec")
     else:
-        # No flags provided, prompt the user for input
         choice = input("Enter 'e' for encryption or 'd' for decryption (q to quit) or 'help' for help: ")
 
         if choice == 'q':
@@ -128,10 +170,12 @@ def main():
             plaintext = input("Enter the plaintext (uppercase, no spaces): ")
             ciphertext = playfair_encrypt(plaintext, key)
             print("Encrypted text:", ciphertext)
+            write_output(ciphertext, "enc")
         elif choice == 'd':
             ciphertext = input("Enter the ciphertext (uppercase): ")
             plaintext = playfair_decrypt(ciphertext, key)
             print("Decrypted text:", plaintext)
+            write_output(plaintext, "dec")
         else:
             print("Invalid choice. Please try again.")
 
