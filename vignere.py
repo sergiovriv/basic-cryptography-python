@@ -102,8 +102,8 @@ def create_parser():
                         help='Encrypt the content of the given file')
     parser.add_argument('-d', metavar='FILEPATH', type=str,
                         help='Decrypt the content of the given file')
-    parser.add_argument('--key', type=str, default='MONAR',
-                        help='Set the encryption/decryption key (default: MONAR)')
+    parser.add_argument('--key', type=str, default='ARMOG',
+                        help='Set the encryption/decryption key (default: ARMOG)')
     
     return parser
 
